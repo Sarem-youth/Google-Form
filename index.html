@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Score Calculator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h1 {
+            color: #007bff;
+            font-weight: 700;
+        }
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #personSelect {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            transition: box-shadow 0.3s;
+        }
+        #personSelect:focus {
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+        }
+        .score-table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+        }
+        .score-table th, .score-table td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+        }
+        .score-table th {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+        .score-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 40px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .charts-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 40px;
+        }
+        .chart-wrapper {
+            flex: 1;
+            min-width: 300px;
+            max-width: 600px;
+        }
+        h2 {
+            margin-top: 40px;
+            color: #333;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 14px;
+            color: #777;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            text-align: center;
+            background: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .login-container input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-container button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" id="loginContainer">
+        <h1>Login</h1>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+    <div class="container" id="contentContainer" style="display: none;">
+        <h1>Score Calculator</h1>
+        <button onclick="fetchData()"><i class="fas fa-sync-alt"></i> Fetch and Calculate Scores</button>
+        <select id="personSelect" onchange="displayPersonDetails()">
+            <option value="">Select a Person</option>
+        </select>
+        <div id="output"></div>
+        <div class="charts-grid">
+            <div class="chart-wrapper">
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-container">
+                    <canvas id="totalScoreChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        &copy; 2024 Score Calculator. All rights reserved.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let allScores = [];
+        let categoryChart;
+        let totalScoreChart;
+
+        async function fetchData() {
+            // Fetch data from Google Sheets - replace with your API key and sheet ID
+            const sheetId = '1dvLx9ObDKfGiN_Ru3zMgIULtQhkA5GIa_-upDd6ZIAo';
+            const apiKey = 'AIzaSyDF3hmvoNQU7g9E7GyKgHvo8bk0sPnoHXQ';
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Form Responses 1?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (!data.values) {
+                    throw new Error('No data found in the response.');
+                }
+                calculateScores(data.values);
+            } catch (error) {
+                console.error('Error fetching data', error);
+            }
+        }
+
+        function calculateScores(rows) {
+            if (!rows || rows.length < 2) {
+                console.error('No valid rows available for processing.');
+                return;
+            }
+            
+            let output = '';
+            allScores = [];
+            const personSelect = document.getElementById('personSelect');
+            personSelect.innerHTML = '<option value="">Select a Person</option>';
+
+            rows.slice(1).forEach((row, index) => {
+                let score = 0;
+                let categoryScores = {
+                    'ጸሎት': 0,
+                    'ጾም': 0,
+                    'መስጠት': 0,
+                    'ቃለ እግዚአብሔር': 0,
+                    'ወደ ቤተ እግዚአብሔር መሄድ': 0,
+                    'ንስሐ': 0,
+                    'ቅዱስ ቍርባን': 0
+                };
+
+                // Calculate ጸሎት (Columns B-G, indices 1-6)
+                const prayerColumns = [1, 2, 3, 4, 5, 6];
+                prayerColumns.forEach((col) => {
+                    if (row[col] === 'Yes') {
+                        if (col === 1 || col === 6) {
+                            categoryScores['ጸሎት'] += 1;
+                        } else {
+                            categoryScores['ጸሎት'] += 2.5;
+                        }
+                    }
+                });
+
+                // Calculate ጾም (Column H, index 7)
+                if (row[7] === 'Yes') {
+                    categoryScores['ጾም'] = 12;
+                }
+
+                // Calculate መስጠት (Columns I-K, indices 8-10)
+                if (row[10] === 'Yes') {
+                    categoryScores['መስጠት'] += 2;
+                }
+                [8, 9].forEach((col) => {
+                    if (row[col] === 'Yes') {
+                        categoryScores['መስጠት'] += 5;
+                    }
+                });
+
+                // Calculate ቃለ እግዚአብሔር (Columns L-N, indices 11-13)
+                [11, 12, 13].forEach((col) => {
+                    if (row[col] === 'Yes') {
+                        categoryScores['ቃለ እግዚአብሔር'] += 4;
+                    }
+                });
+
+                // Calculate ወደ ቤተ እግዚአብሔር መሄድ (Columns O-Q, indices 14-16)
+                [14, 15].forEach((col) => {
+                    if (row[col] === 'Yes') {
+                        categoryScores['ወደ ቤተ እግዚአብሔር መሄድ'] += 4.5;
+                    }
+                });
+                if (row[16] === 'Yes') {
+                    categoryScores['ወደ ቤተ እግዚአብሔር መሄድ'] += 3;
+                }
+
+                // Calculate ንስሐ (Columns R-U, indices 17-20)
+                [17, 18, 19, 20].forEach((col) => {
+                    if (row[col] === 'Yes') {
+                        categoryScores['ንስሐ'] += 5;
+                    }
+                });
+
+                // Calculate ቅዱስ ቍርባን (Column V, index 21)
+                if (row[21] === 'Yes') {
+                    categoryScores['ቅዱስ ቍርባን'] = 20;
+                }
+
+                // Sum up total score
+                for (const category in categoryScores) {
+                    score += categoryScores[category];
+                }
+
+                let percent = (score / 100) * 100;
+                allScores.push({ name: row[22] || `Person ${index + 1}`, score, percent, categoryScores });
+                personSelect.innerHTML += `<option value="${index}">${row[22] || `Person ${index + 1}`}</option>`;
+            });
+
+            generateTotalScoreChart();
+            generateTotalScoreTable();
+        }
+
+        function displayPersonDetails() {
+            const personIndex = document.getElementById('personSelect').value;
+            if (personIndex === '') {
+                document.getElementById('output').innerHTML = '';
+                return;
+            }
+
+            const person = allScores[personIndex];
+            let output = `<h2>${person.name}</h2>`;
+            output += '<table class="score-table">';
+            output += '<tr><th>Category</th><th>Score</th></tr>';
+            for (const category in person.categoryScores) {
+                output += `<tr><td>${category}</td><td>${person.categoryScores[category]}</td></tr>`;
+            }
+            output += '</table>';
+            document.getElementById('output').innerHTML = output;
+
+            generateCategoryChart(person);
+        }
+
+        function generateCategoryChart(person) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const labels = Object.keys(person.categoryScores);
+            const data = Object.values(person.categoryScores);
+
+            if (categoryChart) {
+                categoryChart.destroy();
+            }
+
+            categoryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Category Score',
+                        data: data,
+                        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Score'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Category'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateTotalScoreChart() {
+            const ctx = document.getElementById('totalScoreChart').getContext('2d');
+            const labels = allScores.map(score => score.name);
+            const data = allScores.map(score => score.score);
+
+            if (totalScoreChart) {
+                totalScoreChart.destroy();
+            }
+
+            totalScoreChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Score',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Total Score'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Person'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateTotalScoreTable() {
+            let output = '<h2>Total Scores for All People</h2>';
+            output += '<table class="score-table">';
+            output += '<tr><th>Name</th><th>Total Score</th><th>Percentage</th></tr>';
+            allScores.forEach(person => {
+                output += `<tr><td>${person.name}</td><td>${person.score}</td><td>${person.percent.toFixed(2)}%</td></tr>`;
+            });
+            output += '</table>';
+            document.getElementById('output').innerHTML += output;
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (username === 'Fish' && password === '@Fish1231') {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('contentContainer').style.display = 'block';
+            } else {
+                errorMessage.textContent = 'Incorrect username or password. Please try again.';
+            }
+        }
+    </script>
+</body>
+</html>

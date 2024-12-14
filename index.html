@@ -181,6 +181,17 @@
         </select>
       </div>
       <div id="output"></div>
+      	  	    <div>
+  <h2>Find Members Below Minimum Threshold</h2>
+  <input
+    type="number"
+    id="thresholdInput"
+    placeholder="Enter minimum threshold"
+    style="padding: 10px; margin-right: 10px; width: 200px;"
+  />
+  <button onclick="filterByThreshold()">Search</button>
+</div>
+<div id="belowThresholdOutput"></div>
       <div class="charts-grid">
         <div class="chart-wrapper">
           <div class="chart-container">
@@ -469,6 +480,29 @@
         output += "</table>";
         document.getElementById("output").innerHTML += output;
       }
+      function filterByThreshold() {
+  const threshold = parseFloat(document.getElementById("thresholdInput").value);
+  const belowThresholdOutput = document.getElementById("belowThresholdOutput");
+
+ 
+
+  const membersBelowThreshold = allScores.filter(person => person.score < threshold);
+
+  if (membersBelowThreshold.length === 0) {
+    belowThresholdOutput.innerHTML = `<p style="color: green;">No members scored below ${threshold}.</p>`;
+    return;
+  }
+
+  let output = `<h3>Members Below ${threshold} Score</h3>`;
+  output += '<table class="score-table">';
+  output += "<tr><th>Name</th><th>Score</th><th>Percentage</th></tr>";
+  membersBelowThreshold.forEach(person => {
+    output += `<tr><td>${person.name}</td><td>${person.score}</td><td>${person.percent.toFixed(2)}%</td></tr>`;
+  });
+  output += "</table>";
+
+  belowThresholdOutput.innerHTML = output;
+}
 
       function login() {
         const username = document.getElementById("username").value;
